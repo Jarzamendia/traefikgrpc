@@ -1,0 +1,44 @@
+debug = false
+logLevel = "ERROR"
+InsecureSkipVerify = true
+
+[accessLog]
+  format = "json"
+
+[traefikLog]
+  format  = "json"
+
+[ping]
+  entryPoint = "http"
+
+[api]
+entryPoint = "traefik"
+dashboard = true
+debug = false
+
+[api.statistics]
+recentErrors = 10
+
+[metrics]
+    [metrics.prometheus]
+    entryPoint = "traefik"
+    buckets = [0.1,0.3,1.2,5.0]
+
+[docker]
+watch = true
+swarmmode = true
+exposedByDefault = true
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+    [[entryPoints.https.tls.certificates]]
+    certFile = "./frontend.cert"
+    keyFile  = "./frontend.key"
+
+  [entryPoints.traefik]
+  address = ":8082"

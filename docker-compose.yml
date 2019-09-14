@@ -1,0 +1,68 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: traefik:v1.7.15-alpine
+    command:
+      #- "storeconfig"
+      - "--configfile=/etc/traefik/traefik.toml"
+      #- "--consul"
+      #- "--consul.endpoint=http://server.DC1.consul:8500"
+      #- "--consul.prefix=traefik"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8082:8082"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml
+      - ./traefik/frontend.cert:/frontend.cert
+      - ./traefik/frontend.key:/frontend.key
+    networks:
+      - proxy_net
+    deploy:
+      mode: global
+      labels:
+        - "traefik.frontend.entryPoints=http,https"
+        - "traefik.port=8082"
+        - "traefik.backend=traefik"
+        - "traefik.frontend.rule=Host:traefik.local"
+        - "traefik.docker.network=proxy_net"
+
+  backend-https:
+    image: grpc-server:latest
+    networks:
+      - proxy_net
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.frontend.entryPoints=https"
+        - "traefik.port=50051"
+        - "traefik.protocol=https"
+        - "traefik.backend=backend-https"
+        - "traefik.frontend.rule=Host:frontend.local"
+        - "traefik.docker.network=proxy_net"
+
+  backend-hc2:
+    image: grpc-server-h2c:latest
+    networks:
+      - proxy_net
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.frontend.entryPoints=https"
+        - "traefik.port=50051"
+        - "traefik.protocol=h2c"
+        - "traefik.backend=backend-hc2"
+        - "traefik.frontend.rule=Host:h2c.local"
+        - "traefik.docker.network=proxy_net"
+
+volumes:
+  consul-data:
+
+networks:
+  proxy_net:
+    external: true
